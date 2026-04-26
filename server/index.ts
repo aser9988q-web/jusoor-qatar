@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import { createServer } from "http";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -259,7 +260,18 @@ async function startServer() {
   app.use(express.static(staticPath));
 
   // Handle client-side routing - serve index.html for all routes
-  app.get("*", (_req, res) => {
+  // But first check if the requested file exists as a static file
+  app.get("*", (req, res) => {
+    // Check if the requested path is a static file
+    const filePath = path.join(staticPath, req.path);
+    
+    // If the file exists and is not a directory, serve it
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      res.sendFile(filePath);
+      return;
+    }
+    
+    // Otherwise, serve index.html for client-side routing
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
