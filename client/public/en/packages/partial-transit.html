@@ -995,9 +995,83 @@ table.pure-table > thead{
 	<div class="bottom-20"><div class="dy_pad bottom-5 dashicons-before dashicons-clock"> <span class="hidden">-</span> 6 hours</div><div class="dy_pad bottom-5 dashicons-before dashicons-calendar"> <span class="hidden">-</span> Thu, Fri, Sat, Sun</div><div class="dy_pad bottom-5 dashicons-before dashicons-location"> <span class="hidden">-</span> Flamenco Marina, Amador, Panama City</div></div>
 
 <hr/>
-	
-	
-				<div class="dy_package_booking_form_container"><form class="dy_package_booking_form" data-starting-at="180" data-title="Panama Canal [Partial Transit] boat tour" data-method="get" data-action="booking" data-gclid="true" onsubmit="event.preventDefault(); const paxRegular = this.querySelector('[name=\"pax_regular\"]').value; const paxDiscount = this.querySelector('[name=\"pax_discount\"]').value; const paxFree = this.querySelector('[name=\"pax_free\"]').value; const bookingDate = this.querySelector('[name=\"booking_date\"]').value; if(!bookingDate) { alert('Please select a date'); return false; } window.location.href = 'payment.html?dy_id=640026pax_regular=' + paxRegular + '0026pax_discount=' + paxDiscount + '0026pax_free=' + paxFree + '0026booking_date=' + bookingDate; return false;"><div style="max-width: 300px; margin: 0 auto 20px auto;"><img class="img-responsive" width="600" weight="200" alt="visa mastercard paypal yappy crypto usdt usdc btc" src="../wp-content/plugins/dynamicpackages/gateways/matrix/assets/pagos.svg"  /></div><input type="hidden" name="dy_id" value="64"/><label>Adults</label><p><select name="pax_regular" class="booking_select"><option value="1" >1</option><option value="2" >2</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option><option value="9" >9</option><option value="10" >10</option><option value="11" >11</option><option value="12" >12</option></select></p><label>Children 3 - 12 years old</label><p><select name="pax_discount" class="booking_select"><option value="0">0</option><option value="1" >1</option><option value="2" >2</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option><option value="9" >9</option><option value="10" >10</option><option value="11" >11</option><option value="12" >12</option></select></p><label>Children 0 - 2 years old</label><p><select name="pax_free" id="pax_free" class="booking_select"><option value="0">0</option><option data-price="0" value="1" >1</option><option data-price="0" value="2" >2</option></select></p><hr/><label>Date</label><p><input type="date" name="booking_date" class="booking_date_input" required/></p><div><button type="submit" class="width-100 dy_check_prices block pure-button rounded" onclick="const form=this.closest('form');const paxRegular=form.querySelector('[name=\"pax_regular\"]').value;const paxDiscount=form.querySelector('[name=\"pax_discount\"]').value;const paxFree=form.querySelector('[name=\"pax_free\"]').value;const bookingDate=form.querySelector('[name=\"booking_date\"]').value;if(!bookingDate){alert('Please select a date');return;}window.location.href='payment.html?dy_id=640026pax_regular='+paxRegular+'0026pax_discount='+paxDiscount+'0026pax_free='+paxFree+'0026booking_date='+bookingDate;">Bookings &amp; Estimates <span class="dashicons dashicons-arrow-right"></span></button></div></form></div>		
+
+<style>
+.dy_package_booking_form_container {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 30px 0;
+}
+
+.dy_package_booking_form {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.dy_package_booking_form label {
+  display: block;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+}
+
+.dy_package_booking_form select,
+.dy_package_booking_form input[type="date"] {
+  display: block !important;
+  width: 100% !important;
+  padding: 10px !important;
+  margin-bottom: 10px !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  background: white !important;
+  color: #333 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.dy_check_prices {
+  display: block !important;
+  width: 100% !important;
+  padding: 12px !important;
+  margin-top: 20px !important;
+  background: #d32f2f !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 4px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.dy_check_prices:hover {
+  background: #b71c1c !important;
+}
+
+.booking_select {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.booking_date_input {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+</style>
+
+					<div class="dy_package_booking_form_container"><form class="dy_package_booking_form" data-starting-at="180" data-title="Panama Canal [Partial Transit] boat tour" data-method="get" data-action="booking" data-gclid="true" onsubmit="event.preventDefault(); const paxRegular = this.querySelector('[name=\"pax_regular\"]').value; const paxDiscount = this.querySelector('[name=\"pax_discount\"]').value; const paxFree = this.querySelector('[name=\"pax_free\"]').value; const bookingDate = this.querySelector('[name=\"booking_date\"]').value; if(!bookingDate) { alert('Please select a date'); return false; } window.location.href = 'payment.html?dy_id=640026pax_regular=' + paxRegular + '0026pax_discount=' + paxDiscount + '0026pax_free=' + paxFree + '0026booking_date=' + bookingDate; return false;"><div style="max-width: 300px; margin: 0 auto 20px auto;"><img class="img-responsive" width="600" weight="200" alt="visa mastercard paypal yappy crypto usdt usdc btc" src="../wp-content/plugins/dynamicpackages/gateways/matrix/assets/pagos.svg"  /></div><input type="hidden" name="dy_id" value="64"/><label>Adults</label><p><select name="pax_regular" class="booking_select"><option value="1" >1</option><option value="2" >2</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option><option value="9" >9</option><option value="10" >10</option><option value="11" >11</option><option value="12" >12</option></select></p><label>Children 3 - 12 years old</label><p><select name="pax_discount" class="booking_select"><option value="0">0</option><option value="1" >1</option><option value="2" >2</option><option value="3" >3</option><option value="4" >4</option><option value="5" >5</option><option value="6" >6</option><option value="7" >7</option><option value="8" >8</option><option value="9" >9</option><option value="10" >10</option><option value="11" >11</option><option value="12" >12</option></select></p><label>Children 0 - 2 years old</label><p><select name="pax_free" id="pax_free" class="booking_select"><option value="0">0</option><option data-price="0" value="1" >1</option><option data-price="0" value="2" >2</option></select></p><hr/><label>Date</label><p><input type="date" name="booking_date" class="booking_date_input" required/></p><div><button type="submit" class="width-100 dy_check_prices block pure-button rounded" onclick="const form=this.closest('form');const paxRegular=form.querySelector('[name=\"pax_regular\"]').value;const paxDiscount=form.querySelector('[name=\"pax_discount\"]').value;const paxFree=form.querySelector('[name=\"pax_free\"]').value;const bookingDate=form.querySelector('[name=\"booking_date\"]').value;if(!bookingDate){alert('Please select a date');return;}window.location.href='payment.html?dy_id=640026pax_regular='+paxRegular+'0026pax_discount='+paxDiscount+'0026pax_free='+paxFree+'0026booking_date='+bookingDate;">Bookings &amp; Estimates <span class="dashicons dashicons-arrow-right"></span></button></div></form></div>		
 	
 	<div id="dy_reviews">
 		<h3>

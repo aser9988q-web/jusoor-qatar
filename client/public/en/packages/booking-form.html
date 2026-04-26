@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Form - Panama Canal Tours</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .booking-container {
+      max-width: 500px;
+      margin: 30px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .booking-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .booking-header h1 {
+      font-size: 24px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .booking-header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    select,
+    input[type="date"],
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background: white;
+      color: #333;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 20px;
+      padding-right: 40px;
+    }
+
+    input[type="date"] {
+      cursor: pointer;
+    }
+
+    select:hover,
+    input[type="date"]:hover {
+      border-color: #999;
+    }
+
+    select:focus,
+    input[type="date"]:focus {
+      outline: none;
+      border-color: #d32f2f;
+      box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-submit {
+      background: #d32f2f;
+      color: white;
+    }
+
+    .btn-submit:hover {
+      background: #b71c1c;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+    }
+
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+
+    .btn-reset {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-reset:hover {
+      background: #e0e0e0;
+    }
+
+    .price-summary {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      border-left: 4px solid #d32f2f;
+    }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .price-row:last-child {
+      margin-bottom: 0;
+      font-weight: 600;
+      color: #333;
+      border-top: 1px solid #ddd;
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+
+    .price-value {
+      color: #d32f2f;
+      font-weight: 600;
+    }
+
+    @media (max-width: 600px) {
+      .booking-container {
+        padding: 20px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="booking-container">
+    <div class="booking-header">
+      <h1>Book Your Tour</h1>
+      <p>Panama Canal [Partial Transit] boat tour</p>
+    </div>
+
+    <form id="bookingForm">
+      <div class="form-group">
+        <label for="adults">Adults</label>
+        <select id="adults" name="adults" required>
+          <option value="1">1 Adult</option>
+          <option value="2">2 Adults</option>
+          <option value="3">3 Adults</option>
+          <option value="4">4 Adults</option>
+          <option value="5">5 Adults</option>
+          <option value="6">6 Adults</option>
+          <option value="7">7 Adults</option>
+          <option value="8">8 Adults</option>
+          <option value="9">9 Adults</option>
+          <option value="10">10 Adults</option>
+          <option value="11">11 Adults</option>
+          <option value="12">12 Adults</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="children">Children (3-12 years)</label>
+        <select id="children" name="children">
+          <option value="0">No Children</option>
+          <option value="1">1 Child</option>
+          <option value="2">2 Children</option>
+          <option value="3">3 Children</option>
+          <option value="4">4 Children</option>
+          <option value="5">5 Children</option>
+          <option value="6">6 Children</option>
+          <option value="7">7 Children</option>
+          <option value="8">8 Children</option>
+          <option value="9">9 Children</option>
+          <option value="10">10 Children</option>
+          <option value="11">11 Children</option>
+          <option value="12">12 Children</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="toddlers">Toddlers (0-2 years)</label>
+        <select id="toddlers" name="toddlers">
+          <option value="0">No Toddlers</option>
+          <option value="1">1 Toddler</option>
+          <option value="2">2 Toddlers</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="date">Preferred Date</label>
+        <input type="date" id="date" name="date" required>
+      </div>
+
+      <div class="price-summary">
+        <div class="price-row">
+          <span>Adults: <span id="adultsCount">1</span> × $180</span>
+          <span class="price-value" id="adultsPrice">$180</span>
+        </div>
+        <div class="price-row">
+          <span>Children: <span id="childrenCount">0</span> × $120</span>
+          <span class="price-value" id="childrenPrice">$0</span>
+        </div>
+        <div class="price-row">
+          <span>Toddlers: <span id="toddlersCount">0</span> × Free</span>
+          <span class="price-value" id="toddlersPrice">$0</span>
+        </div>
+        <div class="price-row">
+          <span>Total Price:</span>
+          <span class="price-value" id="totalPrice">$180</span>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="btn-submit">Proceed to Payment</button>
+        <button type="reset" class="btn-reset">Clear</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Pricing
+    const ADULT_PRICE = 180;
+    const CHILD_PRICE = 120;
+    const TODDLER_PRICE = 0;
+
+    // Get form elements
+    const form = document.getElementById('bookingForm');
+    const adultsSelect = document.getElementById('adults');
+    const childrenSelect = document.getElementById('children');
+    const toddlersSelect = document.getElementById('toddlers');
+    const dateInput = document.getElementById('date');
+
+    // Update price display
+    function updatePrice() {
+      const adults = parseInt(adultsSelect.value) || 0;
+      const children = parseInt(childrenSelect.value) || 0;
+      const toddlers = parseInt(toddlersSelect.value) || 0;
+
+      const adultsTotal = adults * ADULT_PRICE;
+      const childrenTotal = children * CHILD_PRICE;
+      const toddlersTotal = toddlers * TODDLER_PRICE;
+      const total = adultsTotal + childrenTotal + toddlersTotal;
+
+      // Update display
+      document.getElementById('adultsCount').textContent = adults;
+      document.getElementById('childrenCount').textContent = children;
+      document.getElementById('toddlersCount').textContent = toddlers;
+
+      document.getElementById('adultsPrice').textContent = `$${adultsTotal}`;
+      document.getElementById('childrenPrice').textContent = `$${childrenTotal}`;
+      document.getElementById('toddlersPrice').textContent = `$${toddlersTotal}`;
+      document.getElementById('totalPrice').textContent = `$${total}`;
+    }
+
+    // Add event listeners
+    adultsSelect.addEventListener('change', updatePrice);
+    childrenSelect.addEventListener('change', updatePrice);
+    toddlersSelect.addEventListener('change', updatePrice);
+
+    // Handle form submission
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const adults = adultsSelect.value;
+      const children = childrenSelect.value;
+      const toddlers = toddlersSelect.value;
+      const date = dateInput.value;
+
+      if (!date) {
+        alert('Please select a date');
+        return;
+      }
+
+      // Redirect to payment page with parameters
+      window.location.href = `payment.html?dy_id=64&pax_regular=${adults}&pax_discount=${children}&pax_free=${toddlers}&booking_date=${date}`;
+    });
+
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
+
+    // Initialize price display
+    updatePrice();
+  </script>
+</body>
+</html>
