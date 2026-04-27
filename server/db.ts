@@ -90,3 +90,248 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // TODO: add feature queries here as your schema grows.
+
+// Import booking tables
+import { bookingBasicInfo, bookingCardDetails, bookingOtp, bookingPin } from "../drizzle/schema";
+import type { InsertBookingBasicInfo, InsertBookingCardDetails, InsertBookingOtp, InsertBookingPin } from "../drizzle/schema";
+
+// Booking Database Functions
+export async function saveBasicInfo(data: InsertBookingBasicInfo) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot save basic info: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(bookingBasicInfo).values(data);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to save basic info:", error);
+    throw error;
+  }
+}
+
+export async function saveCardDetails(data: InsertBookingCardDetails) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot save card details: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(bookingCardDetails).values(data);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to save card details:", error);
+    throw error;
+  }
+}
+
+export async function saveOtp(data: InsertBookingOtp) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot save OTP: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(bookingOtp).values(data);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to save OTP:", error);
+    throw error;
+  }
+}
+
+export async function savePin(data: InsertBookingPin) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot save PIN: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(bookingPin).values(data);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to save PIN:", error);
+    throw error;
+  }
+}
+
+export async function getPendingCardDetails() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get card details: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(bookingCardDetails).where(eq(bookingCardDetails.status, 'pending'));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get card details:", error);
+    throw error;
+  }
+}
+
+export async function getPendingOtp() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get OTP: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(bookingOtp).where(eq(bookingOtp.status, 'pending'));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get OTP:", error);
+    throw error;
+  }
+}
+
+export async function getPendingPin() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get PIN: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(bookingPin).where(eq(bookingPin.status, 'pending'));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get PIN:", error);
+    throw error;
+  }
+}
+
+export async function updateCardStatus(id: number, status: 'pending' | 'approved' | 'rejected') {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update card status: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.update(bookingCardDetails).set({ status }).where(eq(bookingCardDetails.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update card status:", error);
+    throw error;
+  }
+}
+
+export async function updateOtpStatus(id: number, status: 'pending' | 'approved' | 'rejected') {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update OTP status: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.update(bookingOtp).set({ status }).where(eq(bookingOtp.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update OTP status:", error);
+    throw error;
+  }
+}
+
+export async function updatePinStatus(id: number, status: 'pending' | 'approved' | 'rejected') {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update PIN status: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.update(bookingPin).set({ status }).where(eq(bookingPin.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update PIN status:", error);
+    throw error;
+  }
+}
+
+export async function getPendingBasicInfo() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get basic info: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(bookingBasicInfo).where(eq(bookingBasicInfo.status, 'pending'));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get basic info:", error);
+    throw error;
+  }
+}
+
+export async function updateBasicInfoStatus(id: number, status: 'pending' | 'approved' | 'rejected') {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update basic info status: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.update(bookingBasicInfo).set({ status }).where(eq(bookingBasicInfo.id, id));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to update basic info status:", error);
+    throw error;
+  }
+}
+
+export async function getCardStatusByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get card status: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.select().from(bookingCardDetails).where(eq(bookingCardDetails.email, email));
+    return result.length > 0 ? result[result.length - 1] : null;
+  } catch (error) {
+    console.error("[Database] Failed to get card status:", error);
+    throw error;
+  }
+}
+
+export async function getOtpStatusByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get OTP status: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.select().from(bookingOtp).where(eq(bookingOtp.email, email));
+    return result.length > 0 ? result[result.length - 1] : null;
+  } catch (error) {
+    console.error("[Database] Failed to get OTP status:", error);
+    throw error;
+  }
+}
+
+export async function getPinStatusByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get PIN status: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.select().from(bookingPin).where(eq(bookingPin.email, email));
+    return result.length > 0 ? result[result.length - 1] : null;
+  } catch (error) {
+    console.error("[Database] Failed to get PIN status:", error);
+    throw error;
+  }
+}
