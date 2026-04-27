@@ -259,8 +259,20 @@ async function startServer() {
   app.use(express.static(staticPath));
 
   // Handle client-side routing - serve index.html for all routes
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(staticPath, "index.html"));
+  app.get("*", (req, res) => {
+    // Check if the requested file exists
+    const requestedFile = path.join(staticPath, req.path);
+    try {
+      // Try to serve the requested file if it exists
+      if (req.path.endsWith('.html') || req.path.includes('/packages/')) {
+        res.sendFile(requestedFile);
+      } else {
+        res.sendFile(path.join(staticPath, "index.html"));
+      }
+    } catch (err) {
+      // If file doesn't exist, serve index.html
+      res.sendFile(path.join(staticPath, "index.html"));
+    }
   });
 
   const port = process.env.PORT || 3000;
