@@ -1,9 +1,13 @@
 import { useState } from 'react';
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { getLoginUrl } from "@/const";
 import Header from '@/components/Header';
 import TourButtons from '@/components/TourButtons';
 
 export default function Home() {
   const [language, setLanguage] = useState<'en' | 'es'>('en');
+  const { user, isAuthenticated, logout } = useAuth();
 
   const translations = {
     en: {

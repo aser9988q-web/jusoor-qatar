@@ -9,13 +9,13 @@ import Booking from "./pages/Booking";
 import AdminDashboard from "./pages/AdminDashboard";
 import BookingPage from "./pages/BookingPage";
 
-
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/booking/:type" component={Booking} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/booking/:type" component={Booking} />
       <Route path="/booking-page/*" component={BookingPage} />
       <Route path="/en/packages/booking.html" component={BookingPage} />
       <Route path="/es/packages/reserva.html" component={BookingPage} />
