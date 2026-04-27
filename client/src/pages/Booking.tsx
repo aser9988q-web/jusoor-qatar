@@ -5,27 +5,58 @@ import Header from '@/components/Header';
 export default function Booking() {
   const [location, setLocation] = useLocation();
   const [language, setLanguage] = useState<'en' | 'es'>('en');
-  const [step, setStep] = useState<'booking' | 'payment' | 'otp' | 'pin' | 'success'>('payment');
+  const [step, setStep] = useState<'booking' | 'customer' | 'payment' | 'otp' | 'pin' | 'success'>('booking');
+  
+  // Booking data
+  const [bookingData, setBookingData] = useState({
+    serviceType: '',
+    duration: '',
+    date: '',
+    time: '',
+    workers: 1,
+  });
+
+  // Customer data
+  const [customerData, setCustomerData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+  });
+
+  // Payment data
   const [formData, setFormData] = useState({
     cardNumber: '',
     cardHolder: '',
     expiryDate: '',
     cvv: '',
-    email: '',
   });
+
   const [otp, setOtp] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [bookingId, setBookingId] = useState('');
 
   const translations = {
     en: {
+      selectService: 'Select Service',
+      serviceType: 'Service Type',
+      duration: 'Duration',
+      date: 'Date',
+      time: 'Time',
+      workers: 'Number of Workers',
+      continue: 'Continue',
+      customerInfo: 'Customer Information',
+      name: 'Full Name',
+      email: 'Email Address',
+      phone: 'Phone Number',
+      address: 'Address',
       cardDetails: 'Card Details',
       cardNumber: 'Card Number',
       cardHolder: 'Card Holder Name',
       expiryDate: 'Expiry Date (MM/YY)',
       cvv: 'CVV',
-      email: 'Email Address',
       submit: 'Submit Payment',
       processing: 'Processing...',
       otp: 'Enter OTP',
@@ -39,12 +70,23 @@ export default function Booking() {
       back: 'Back',
     },
     es: {
+      selectService: 'Seleccionar Servicio',
+      serviceType: 'Tipo de Servicio',
+      duration: 'Duración',
+      date: 'Fecha',
+      time: 'Hora',
+      workers: 'Número de Trabajadores',
+      continue: 'Continuar',
+      customerInfo: 'Información del Cliente',
+      name: 'Nombre Completo',
+      email: 'Correo Electrónico',
+      phone: 'Número de Teléfono',
+      address: 'Dirección',
       cardDetails: 'Detalles de la Tarjeta',
       cardNumber: 'Número de Tarjeta',
       cardHolder: 'Nombre del Titular',
       expiryDate: 'Fecha de Vencimiento (MM/YY)',
       cvv: 'CVV',
-      email: 'Correo Electrónico',
       submit: 'Enviar Pago',
       processing: 'Procesando...',
       otp: 'Ingrese OTP',
@@ -61,6 +103,50 @@ export default function Booking() {
 
   const t = translations[language];
 
+  // Handle booking step
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep('customer');
+  };
+
+  // Handle customer info step
+  const handleCustomerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    try {
+      // Create booking in database
+      const response = await fetch('/api/booking/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceType: bookingData.serviceType,
+          duration: bookingData.duration,
+          date: bookingData.date,
+          time: bookingData.time,
+          workers: bookingData.workers,
+          customerName: customerData.name,
+          customerEmail: customerData.email,
+          customerPhone: customerData.phone,
+          customerAddress: customerData.address,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookingId(data.bookingId);
+        setStep('payment');
+      } else {
+        setMessage(language === 'en' ? 'Error creating booking' : 'Error al crear reserva');
+      }
+    } catch (error) {
+      setMessage(language === 'en' ? 'Network error' : 'Error de red');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -70,7 +156,11 @@ export default function Booking() {
       const response = await fetch('/api/payment/submit-card', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          email: customerData.email,
+          bookingId: bookingId,
+        }),
       });
 
       if (response.ok) {
@@ -94,7 +184,7 @@ export default function Booking() {
       const response = await fetch('/api/payment/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ otp, email: formData.email }),
+        body: JSON.stringify({ otp, email: customerData.email, bookingId: bookingId }),
       });
 
       if (response.ok) {
@@ -118,7 +208,7 @@ export default function Booking() {
       const response = await fetch('/api/payment/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin, email: formData.email }),
+        body: JSON.stringify({ pin, email: customerData.email, bookingId: bookingId }),
       });
 
       if (response.ok) {
@@ -136,202 +226,281 @@ export default function Booking() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header language={language} onLanguageChange={setLanguage} />
-
-      <main className="flex-1 py-12">
-        <div className="max-w-2xl mx-auto px-4">
-          {/* Card Details Form */}
-          {step === 'payment' && (
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-3xl font-bold mb-8 text-gray-800">{t.cardDetails}</h2>
-
-              <form onSubmit={handleCardSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t.cardNumber}
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={formData.cardNumber}
-                    onChange={(e) =>
-                      setFormData({ ...formData, cardNumber: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t.cardHolder}
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="John Doe"
-                    value={formData.cardHolder}
-                    onChange={(e) =>
-                      setFormData({ ...formData, cardHolder: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      {t.expiryDate}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="12/25"
-                      value={formData.expiryDate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, expiryDate: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      {t.cvv}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="123"
-                      value={formData.cvv}
-                      onChange={(e) =>
-                        setFormData({ ...formData, cvv: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t.email}
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="john@example.com"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-                    required
-                  />
-                </div>
-
-                {message && (
-                  <div className="p-4 bg-red-100 text-red-700 rounded-lg">
-                    {message}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+      
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
+        {step === 'booking' && (
+          <form onSubmit={handleBookingSubmit} className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold mb-6">{t.selectService}</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.serviceType}</label>
+                <select
+                  value={bookingData.serviceType}
+                  onChange={(e) => setBookingData({ ...bookingData, serviceType: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
                 >
-                  {loading ? t.processing : t.submit}
-                </button>
-              </form>
-            </div>
-          )}
+                  <option value="">Select...</option>
+                  <option value="domestic">Domestic Worker</option>
+                  <option value="cook">Cook</option>
+                  <option value="childcare">Childcare</option>
+                  <option value="driver">Driver</option>
+                </select>
+              </div>
 
-          {/* OTP Form */}
-          {step === 'otp' && (
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-3xl font-bold mb-4 text-gray-800">{t.otp}</h2>
-              <p className="text-gray-600 mb-8">{t.enterOtp}</p>
-
-              <form onSubmit={handleOtpSubmit} className="space-y-6">
-                <div>
-                  <input
-                    type="text"
-                    placeholder="000000"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-red-600"
-                    required
-                  />
-                </div>
-
-                {message && (
-                  <div className="p-4 bg-red-100 text-red-700 rounded-lg">
-                    {message}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.duration}</label>
+                <select
+                  value={bookingData.duration}
+                  onChange={(e) => setBookingData({ ...bookingData, duration: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
                 >
-                  {loading ? t.processing : t.verifyOtp}
-                </button>
-              </form>
+                  <option value="">Select...</option>
+                  <option value="2">2 hours</option>
+                  <option value="4">4 hours</option>
+                  <option value="6">6 hours</option>
+                  <option value="8">8 hours</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.date}</label>
+                <input
+                  type="date"
+                  value={bookingData.date}
+                  onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.time}</label>
+                <input
+                  type="time"
+                  value={bookingData.time}
+                  onChange={(e) => setBookingData({ ...bookingData, time: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.workers}</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={bookingData.workers}
+                  onChange={(e) => setBookingData({ ...bookingData, workers: parseInt(e.target.value) })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
             </div>
-          )}
 
-          {/* PIN Form */}
-          {step === 'pin' && (
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-3xl font-bold mb-4 text-gray-800">{t.pin}</h2>
-              <p className="text-gray-600 mb-8">{t.enterPin}</p>
+            <button
+              type="submit"
+              className="w-full bg-red-600 text-white py-2 rounded-md font-medium hover:bg-red-700"
+            >
+              {t.continue}
+            </button>
+          </form>
+        )}
 
-              <form onSubmit={handlePinSubmit} className="space-y-6">
-                <div>
-                  <input
-                    type="password"
-                    placeholder="••••"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-red-600"
-                    required
-                  />
-                </div>
+        {step === 'customer' && (
+          <form onSubmit={handleCustomerSubmit} className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold mb-6">{t.customerInfo}</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.name}</label>
+                <input
+                  type="text"
+                  value={customerData.name}
+                  onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
 
-                {message && (
-                  <div className="p-4 bg-red-100 text-red-700 rounded-lg">
-                    {message}
-                  </div>
-                )}
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.email}</label>
+                <input
+                  type="email"
+                  value={customerData.email}
+                  onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
-                >
-                  {loading ? t.processing : t.verifyPin}
-                </button>
-              </form>
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.phone}</label>
+                <input
+                  type="tel"
+                  value={customerData.phone}
+                  onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.address}</label>
+                <input
+                  type="text"
+                  value={customerData.address}
+                  onChange={(e) => setCustomerData({ ...customerData, address: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
             </div>
-          )}
 
-          {/* Success Message */}
-          {step === 'success' && (
-            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-              <div className="text-6xl mb-4">✓</div>
-              <h2 className="text-3xl font-bold mb-4 text-green-600">{t.success}</h2>
-              <p className="text-gray-600 mb-8">
-                {language === 'en'
-                  ? 'Your payment has been processed successfully. You will receive a confirmation email shortly.'
-                  : 'Su pago ha sido procesado exitosamente. Recibirá un correo de confirmación pronto.'}
-              </p>
-              <a
-                href="/"
-                className="inline-block bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition"
-              >
-                {language === 'en' ? 'Back to Home' : 'Volver al Inicio'}
-              </a>
+            {message && <p className="text-red-600 mb-4">{message}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-600 text-white py-2 rounded-md font-medium hover:bg-red-700 disabled:opacity-50"
+            >
+              {loading ? t.processing : t.continue}
+            </button>
+          </form>
+        )}
+
+        {step === 'payment' && (
+          <form onSubmit={handleCardSubmit} className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold mb-6">{t.cardDetails}</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-2">{t.cardNumber}</label>
+                <input
+                  type="text"
+                  placeholder="4532 8970 1234 5678"
+                  value={formData.cardNumber}
+                  onChange={(e) => setFormData({ ...formData, cardNumber: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-2">{t.cardHolder}</label>
+                <input
+                  type="text"
+                  value={formData.cardHolder}
+                  onChange={(e) => setFormData({ ...formData, cardHolder: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.expiryDate}</label>
+                <input
+                  type="text"
+                  placeholder="MM/YY"
+                  value={formData.expiryDate}
+                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">{t.cvv}</label>
+                <input
+                  type="text"
+                  placeholder="123"
+                  value={formData.cvv}
+                  onChange={(e) => setFormData({ ...formData, cvv: e.target.value })}
+                  className="w-full border rounded-md p-2"
+                  required
+                />
+              </div>
             </div>
-          )}
-        </div>
+
+            {message && <p className="text-red-600 mb-4">{message}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-600 text-white py-2 rounded-md font-medium hover:bg-red-700 disabled:opacity-50"
+            >
+              {loading ? t.processing : t.submit}
+            </button>
+          </form>
+        )}
+
+        {step === 'otp' && (
+          <form onSubmit={handleOtpSubmit} className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold mb-6">{t.otp}</h2>
+            <p className="text-gray-600 mb-4">{t.enterOtp}</p>
+            
+            <input
+              type="text"
+              placeholder="000000"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="w-full border rounded-md p-2 mb-6"
+              required
+            />
+
+            {message && <p className="text-red-600 mb-4">{message}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-600 text-white py-2 rounded-md font-medium hover:bg-red-700 disabled:opacity-50"
+            >
+              {loading ? t.processing : t.verifyOtp}
+            </button>
+          </form>
+        )}
+
+        {step === 'pin' && (
+          <form onSubmit={handlePinSubmit} className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold mb-6">{t.pin}</h2>
+            <p className="text-gray-600 mb-4">{t.enterPin}</p>
+            
+            <input
+              type="password"
+              placeholder="****"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              className="w-full border rounded-md p-2 mb-6"
+              required
+            />
+
+            {message && <p className="text-red-600 mb-4">{message}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-600 text-white py-2 rounded-md font-medium hover:bg-red-700 disabled:opacity-50"
+            >
+              {loading ? t.processing : t.verifyPin}
+            </button>
+          </form>
+        )}
+
+        {step === 'success' && (
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <h2 className="text-2xl font-bold mb-4 text-green-600">{t.success}</h2>
+            <p className="text-gray-600 mb-4">Booking ID: {bookingId}</p>
+            <button
+              onClick={() => setLocation('/')}
+              className="bg-red-600 text-white py-2 px-6 rounded-md font-medium hover:bg-red-700"
+            >
+              {t.back}
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
