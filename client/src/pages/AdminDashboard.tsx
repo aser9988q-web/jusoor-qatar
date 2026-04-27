@@ -28,9 +28,9 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [stats, setStats] = useState<DashboardStats>({
-    totalBookings: 200,
-    completed: 2,
-    pending: 1,
+    totalBookings: 0,
+    completed: 0,
+    pending: 0,
     rejected: 0,
     revenue: 0,
   });

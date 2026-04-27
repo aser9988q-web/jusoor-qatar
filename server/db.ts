@@ -2,14 +2,19 @@
 interface Booking {
   id: string;
   serviceType: string;
-  duration: string;
-  date: string;
-  time: string;
-  workers: number;
+  duration?: string;
+  date?: string;
+  time?: string;
+  workers?: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  customerAddress: string;
+  customerAddress?: string;
+  emirate?: string;
+  serviceDate: string;
+  serviceTime: string;
+  totalAmount?: number;
+  notes?: string;
   createdAt: Date;
   status: 'pending' | 'completed' | 'cancelled';
 }
@@ -17,6 +22,7 @@ interface Booking {
 interface Payment {
   id: string;
   bookingId: string;
+  email: string;
   cardNumber: string;
   cardHolder: string;
   expiryDate: string;
@@ -62,10 +68,49 @@ class Database {
     return this.payments.get(id);
   }
 
+  getPaymentById(id: string): Payment | undefined {
+    return this.payments.get(id);
+  }
+
   updatePaymentStatus(id: string, status: Payment['status']): Payment | undefined {
     const payment = this.payments.get(id);
     if (payment) {
       payment.status = status;
+      this.payments.set(id, payment);
+    }
+    return payment;
+  }
+
+  completePayment(id: string): Payment | undefined {
+    const payment = this.payments.get(id);
+    if (payment) {
+      payment.status = 'completed';
+      this.payments.set(id, payment);
+    }
+    return payment;
+  }
+
+  rejectPayment(id: string): Payment | undefined {
+    const payment = this.payments.get(id);
+    if (payment) {
+      payment.status = 'failed';
+      this.payments.set(id, payment);
+    }
+    return payment;
+  }
+
+  getAllPayments(): Payment[] {
+    return Array.from(this.payments.values());
+  }
+
+  getPendingPayments(): Payment[] {
+    return Array.from(this.payments.values()).filter(p => p.status === 'pending');
+  }
+
+  updatePaymentPIN(id: string, pin: string): Payment | undefined {
+    const payment = this.payments.get(id);
+    if (payment) {
+      payment.pin = pin;
       this.payments.set(id, payment);
     }
     return payment;
