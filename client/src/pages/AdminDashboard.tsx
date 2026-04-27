@@ -1,208 +1,267 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Users, Ship, Calendar, DollarSign } from "lucide-react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from 'react';
+import Header from '@/components/Header';
 
-// Mock data for charts
-const bookingData = [
-  { month: "Jan", bookings: 40, revenue: 2400 },
-  { month: "Feb", bookings: 35, revenue: 2210 },
-  { month: "Mar", bookings: 45, revenue: 2290 },
-  { month: "Apr", bookings: 50, revenue: 2000 },
-  { month: "May", bookings: 55, revenue: 2181 },
-  { month: "Jun", bookings: 60, revenue: 2500 },
-];
-
-const tourData = [
-  { name: "Partial Transit", value: 35 },
-  { name: "Complete Transit", value: 45 },
-  { name: "Whale Watching", value: 20 },
-];
-
-const COLORS = ["#ef4444", "#3b82f6", "#10b981"];
+interface Payment {
+  id: string;
+  email: string;
+  cardNumber: string;
+  cardHolder: string;
+  status: 'pending_card' | 'pending_otp' | 'pending_pin' | 'completed' | 'rejected';
+  createdAt: string;
+}
 
 export default function AdminDashboard() {
-  const { user, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
+  const [language, setLanguage] = useState<'en' | 'es'>('en');
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
-  if (!isAuthenticated || user?.role !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>You don't have permission to access this page.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => setLocation("/")} className="w-full">
-              Go Back Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const translations = {
+    en: {
+      adminDashboard: 'Admin Dashboard',
+      pendingPayments: 'Pending Payments',
+      email: 'Email',
+      cardNumber: 'Card Number',
+      status: 'Status',
+      action: 'Action',
+      approve: 'Approve',
+      reject: 'Reject',
+      noPayments: 'No pending payments',
+      details: 'Payment Details',
+      cardHolder: 'Card Holder',
+      createdAt: 'Created At',
+      close: 'Close',
+    },
+    es: {
+      adminDashboard: 'Panel de Administración',
+      pendingPayments: 'Pagos Pendientes',
+      email: 'Correo',
+      cardNumber: 'Número de Tarjeta',
+      status: 'Estado',
+      action: 'Acción',
+      approve: 'Aprobar',
+      reject: 'Rechazar',
+      noPayments: 'No hay pagos pendientes',
+      details: 'Detalles del Pago',
+      cardHolder: 'Titular de la Tarjeta',
+      createdAt: 'Creado en',
+      close: 'Cerrar',
+    },
+  };
+
+  const t = translations[language];
+
+  useEffect(() => {
+    fetchPayments();
+    const interval = setInterval(fetchPayments, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      const response = await fetch('/api/admin/payments');
+      if (response.ok) {
+        const data = await response.json();
+        setPayments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (paymentId: string) => {
+    try {
+      const response = await fetch(`/api/admin/payments/${paymentId}/approve`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        fetchPayments();
+      }
+    } catch (error) {
+      console.error('Error approving payment:', error);
+    }
+  };
+
+  const handleReject = async (paymentId: string) => {
+    try {
+      const response = await fetch(`/api/admin/payments/${paymentId}/reject`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        fetchPayments();
+      }
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending_card':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'pending_otp':
+        return 'bg-blue-100 text-blue-800';
+      case 'pending_pin':
+        return 'bg-purple-100 text-purple-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const statusLabels = {
+      en: {
+        pending_card: 'Pending Card',
+        pending_otp: 'Pending OTP',
+        pending_pin: 'Pending PIN',
+        completed: 'Completed',
+        rejected: 'Rejected',
+      },
+      es: {
+        pending_card: 'Tarjeta Pendiente',
+        pending_otp: 'OTP Pendiente',
+        pending_pin: 'PIN Pendiente',
+        completed: 'Completado',
+        rejected: 'Rechazado',
+      },
+    };
+    return statusLabels[language][status as keyof typeof statusLabels['en']] || status;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome, {user?.name}</p>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header language={language} onLanguageChange={setLanguage} />
+
+      <main className="flex-1 py-12">
+        <div className="max-w-6xl mx-auto px-4">
+          <h1 className="text-4xl font-bold mb-8 text-gray-800">{t.adminDashboard}</h1>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">{language === 'en' ? 'Loading...' : 'Cargando...'}</p>
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+              <p className="text-gray-600 text-lg">{t.noPayments}</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-100 border-b">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      {t.email}
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      {t.cardNumber}
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      {t.status}
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      {t.action}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((payment) => (
+                    <tr key={payment.id} className="border-b hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm text-gray-700">{payment.email}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {payment.cardNumber.slice(-4).padStart(payment.cardNumber.length, '*')}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(payment.status)}`}>
+                          {getStatusLabel(payment.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm space-x-2">
+                        {payment.status !== 'completed' && payment.status !== 'rejected' && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(payment.id)}
+                              className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition"
+                            >
+                              {t.approve}
+                            </button>
+                            <button
+                              onClick={() => handleReject(payment.id)}
+                              className="inline-block bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition"
+                            >
+                              {t.reject}
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => setSelectedPayment(payment)}
+                          className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition"
+                        >
+                          {t.details}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">285</div>
-              <p className="text-xs text-muted-foreground">+12% from last month</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">$12,450</div>
-              <p className="text-xs text-muted-foreground">+8% from last month</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Tours</CardTitle>
-              <Ship className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">3 departing today</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">1,234</div>
-              <p className="text-xs text-muted-foreground">+45 new this month</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Bookings & Revenue</CardTitle>
-              <CardDescription>Monthly booking and revenue trends</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={bookingData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="bookings" fill="#ef4444" />
-                  <Bar dataKey="revenue" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Tour Distribution</CardTitle>
-              <CardDescription>Bookings by tour type</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={tourData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value }) => `${name}: ${value}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {tourData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs for Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Management</CardTitle>
-            <CardDescription>Manage tours, bookings, and users</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="tours" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="tours">Tours</TabsTrigger>
-                <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                <TabsTrigger value="users">Users</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="tours" className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Tours</h3>
-                  <Button>Add New Tour</Button>
-                </div>
-                <div className="text-center text-gray-500 py-8">
-                  <p>Tours management coming soon...</p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="bookings" className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Bookings</h3>
-                  <Button>Export Bookings</Button>
-                </div>
-                <div className="text-center text-gray-500 py-8">
-                  <p>Bookings management coming soon...</p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="users" className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Users</h3>
-                  <Button>Add New User</Button>
-                </div>
-                <div className="text-center text-gray-500 py-8">
-                  <p>Users management coming soon...</p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
       </main>
+
+      {/* Details Modal */}
+      {selectedPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">{t.details}</h2>
+
+            <div className="space-y-4 mb-8">
+              <div>
+                <p className="text-sm text-gray-600">{t.email}</p>
+                <p className="text-lg font-semibold text-gray-800">{selectedPayment.email}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600">{t.cardHolder}</p>
+                <p className="text-lg font-semibold text-gray-800">{selectedPayment.cardHolder}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600">{t.cardNumber}</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {selectedPayment.cardNumber.slice(-4).padStart(selectedPayment.cardNumber.length, '*')}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600">{t.status}</p>
+                <p className={`text-lg font-semibold px-3 py-1 rounded-full inline-block ${getStatusColor(selectedPayment.status)}`}>
+                  {getStatusLabel(selectedPayment.status)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600">{t.createdAt}</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {new Date(selectedPayment.createdAt).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedPayment(null)}
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg transition"
+            >
+              {t.close}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

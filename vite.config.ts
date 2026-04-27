@@ -373,31 +373,7 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-function vitePluginStaticBooking(): Plugin {
-  return {
-    name: "manus-static-booking",
-    configureServer(server: ViteDevServer) {
-      // Serve static booking HTML files
-      server.middlewares.use((req, res, next) => {
-        // Match booking page requests
-        if (req.url?.match(/^\/(en|es)\/packages\/(booking\.html|reserva\.html)$/)) {
-          const filePath = path.join(PROJECT_ROOT, "client/public", req.url);
-          try {
-            const content = fs.readFileSync(filePath, "utf-8");
-            res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-            res.end(content);
-            return;
-          } catch (e) {
-            // File not found, continue to next middleware
-          }
-        }
-        next();
-      });
-    },
-  };
-}
-
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginApiMiddleware(), vitePluginStaticBooking(), vitePluginStorageProxy()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginApiMiddleware(), vitePluginStorageProxy()];
 
 export default defineConfig({
   plugins,
@@ -410,12 +386,13 @@ export default defineConfig({
   },
   envDir: path.resolve(import.meta.dirname),
   root: path.resolve(import.meta.dirname, "client"),
-  publicDir: path.resolve(import.meta.dirname, "client", "public"),
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
+    port: 3000,
+    strictPort: false, // Will find next available port if 3000 is busy
     host: true,
     allowedHosts: [
       ".manuspre.computer",

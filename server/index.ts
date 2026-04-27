@@ -1,6 +1,5 @@
 import express, { Request, Response } from "express";
 import { createServer } from "http";
-import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -251,50 +250,17 @@ async function startServer() {
     }
   });
 
-  // Serve static files from public directory
-  const publicPath = path.join(__dirname, "..", "public");
-  
-  // Serve all static files with proper MIME types
-  app.use(express.static(publicPath, {
-    extensions: ['html', 'htm', 'css', 'js', 'json', 'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico', 'txt'],
-    setHeaders: (res, filePath) => {
-      // Set proper cache headers for static files
-      if (filePath.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      } else {
-        res.setHeader('Cache-Control', 'public, max-age=3600');
-      }
-    }
-  }));
+  // Serve static files from dist/public in production
+  const staticPath =
+    process.env.NODE_ENV === "production"
+      ? path.resolve(__dirname, "public")
+      : path.resolve(__dirname, "..", "dist", "public");
+
+  app.use(express.static(staticPath));
 
   // Handle client-side routing - serve index.html for all routes
-  // But first check if the requested file exists as a static file
-  app.get("*", (req, res) => {
-    // Check if the requested path is a static file
-    const filePath = path.join(publicPath, req.path);
-    
-    // If the file exists and is not a directory, serve it
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      res.sendFile(filePath);
-      return;
-    }
-    
-    // Check if it's a directory with index.html
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
-      const indexPath = path.join(filePath, 'index.html');
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-        return;
-      }
-    }
-    
-    // Otherwise, serve index.html for client-side routing
-    const indexPath = path.join(publicPath, "index.html");
-    if (fs.existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.status(404).send("Not found");
-    }
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(staticPath, "index.html"));
   });
 
   const port = process.env.PORT || 3000;
